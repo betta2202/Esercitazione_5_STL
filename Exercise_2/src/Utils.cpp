@@ -8,7 +8,8 @@
 namespace MeshLibrary {
 
 bool importMesh(const string& path,
-                PolygonalMesh& mesh)
+                PolygonalMesh& mesh,
+                unsigned int& tol)
 {
     if(!importCell0D(path + "/Cell0Ds.csv", mesh))
         return false;
@@ -42,9 +43,9 @@ bool importMesh(const string& path,
 
     if(!importCell2D(path + "/Cell2Ds.csv", mesh))
         return false;
-    /*else
+    else
     {
-        // TEST
+        /*// MARKER TEST
         for(unsigned int c = 0; c < mesh.NumberOfCell2Ds; c++)
         {
             vector<unsigned int> edges = mesh.EdgesCell2Ds[c];
@@ -69,8 +70,59 @@ bool importMesh(const string& path,
                 }
 
             }
+        }*/
+
+        // EDGES TEST
+        for(unsigned int c = 0; c < mesh.NumberOfCell2Ds; c++)
+        {
+            for (unsigned int e = 0; e < mesh.VerticesCell2Ds[c].size(); e++)
+            {
+                vector<unsigned int> VectorOfCoordinates= mesh.VerticesCell2Ds[c];
+                for(unsigned int i = 1; i < VectorOfCoordinates.size(); i++)
+                {
+                    double x1 = mesh.CoordinatesCell0Ds[VectorOfCoordinates[i-1]][0];
+                    double x2 = mesh.CoordinatesCell0Ds[VectorOfCoordinates[i]][0];
+                    double y1 = mesh.CoordinatesCell0Ds[VectorOfCoordinates[i-1]][1];
+                    double y2 = mesh.CoordinatesCell0Ds[VectorOfCoordinates[i]][1];
+
+                    if((fabs(x1-x2) && fabs(y1-y2)) < tol)
+                    {
+                        cerr << "The edges have zero-length" << endl;
+                        return -1;
+                    }
+                }
+            }
         }
-    }*/
+
+        // AREA TEST
+        for(unsigned int c = 0; c < mesh.NumberOfCell2Ds; c++)
+        {
+            for (unsigned int e = 0; e < mesh.VerticesCell2Ds[c].size(); e++)
+            {
+                vector<unsigned int> VectorOfCoordinates= mesh.VerticesCell2Ds[c];
+                for(unsigned int i = 2; i < VectorOfCoordinates.size(); i++)
+                {
+                    double x1 = mesh.CoordinatesCell0Ds[VectorOfCoordinates[i-2]][0];
+                    double x2 = mesh.CoordinatesCell0Ds[VectorOfCoordinates[i-1]][0];
+                    double x3 = mesh.CoordinatesCell0Ds[VectorOfCoordinates[i]][0];
+
+                    double y1 = mesh.CoordinatesCell0Ds[VectorOfCoordinates[i-2]][1];
+                    double y2 = mesh.CoordinatesCell0Ds[VectorOfCoordinates[i-1]][1];
+                    double y3 = mesh.CoordinatesCell0Ds[VectorOfCoordinates[i]][1];
+
+                    double area = 1.0/2.0 * fabs(x1*y2 + x3*y1 + x2*y3 - x3*y2 - x1*y3 - x2*y1);
+
+                    if(area < tol*tol)
+                    {
+                        cerr << "The area is zero" << endl;
+                        return -1;
+                    }
+                }
+            }
+        }
+
+
+    }
 
     return true;
 }
@@ -265,6 +317,8 @@ bool importCell2D(const string& fileName,
         mesh.VerticesCell2Ds.push_back(vertices);
         mesh.EdgesCell2Ds.push_back(edges);
     }
+
+
     file.close();
 
     return true;

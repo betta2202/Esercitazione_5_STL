@@ -10,8 +10,9 @@ int main()
 {
     PolygonalMesh mesh;
     string path = "PolygonalMesh";
+    unsigned int tol = 1e-1;
 
-    if(!importMesh(path, mesh))
+    if(!importMesh(path, mesh, tol))
         return 1;
 
     return 0;
