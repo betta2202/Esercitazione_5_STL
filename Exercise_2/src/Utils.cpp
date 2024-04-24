@@ -7,9 +7,10 @@
 
 namespace MeshLibrary {
 
+
 bool importMesh(const string& path,
                 PolygonalMesh& mesh,
-                unsigned int& tol)
+                double& tol)
 {
     if(!importCell0D(path + "/Cell0Ds.csv", mesh))
         return false;
@@ -43,36 +44,8 @@ bool importMesh(const string& path,
 
     if(!importCell2D(path + "/Cell2Ds.csv", mesh))
         return false;
-    else
-    {
-        /*// MARKER TEST
-        for(unsigned int c = 0; c < mesh.NumberOfCell2Ds; c++)
-        {
-            vector<unsigned int> edges = mesh.EdgesCell2Ds[c];
 
-            for(unsigned int e = 0; e < 3; e++)
-            {
-                const unsigned int origin = mesh.VerticesCell1Ds[edges[e]][0];
-                const unsigned int end = mesh.VerticesCell1Ds[edges[e]][1];
-
-                auto findOrigin = find(mesh.VerticesCell2Ds[c].begin(), mesh.VerticesCell2Ds[c].end(), origin);
-                if(findOrigin == mesh.VerticesCell2Ds[c].end())
-                {
-                    cerr << "Wrong mesh" << endl;
-                    return 2;
-                }
-
-                auto findEnd = find(mesh.VerticesCell2Ds[c].begin(), mesh.VerticesCell2Ds[c].end(), end);
-                if(findEnd == mesh.VerticesCell2Ds[c].end())
-                {
-                    cerr << "Wrong mesh" << endl;
-                    return 3;
-                }
-
-            }
-        }*/
-
-        // EDGES TEST
+    // EDGES TEST
         for(unsigned int c = 0; c < mesh.NumberOfCell2Ds; c++)
         {
             for (unsigned int e = 0; e < mesh.VerticesCell2Ds[c].size(); e++)
@@ -85,44 +58,71 @@ bool importMesh(const string& path,
                     double y1 = mesh.CoordinatesCell0Ds[VectorOfCoordinates[i-1]][1];
                     double y2 = mesh.CoordinatesCell0Ds[VectorOfCoordinates[i]][1];
 
-                    if((fabs(x1-x2) && fabs(y1-y2)) < tol)
+                    if( sqrt((x1-x2)*(x1-x2)+(y1-y2)*(y1-y2)) < tol)
                     {
                         cerr << "The edges have zero-length" << endl;
-                        return -1;
+                        break;
                     }
+                }
+                // check on the first and last edge
+                double x1 = mesh.CoordinatesCell0Ds[VectorOfCoordinates[0]][0];
+                double x2 = mesh.CoordinatesCell0Ds[VectorOfCoordinates[VectorOfCoordinates.size()-1]][0];
+                double y1 = mesh.CoordinatesCell0Ds[VectorOfCoordinates[0]][1];
+                double y2 = mesh.CoordinatesCell0Ds[VectorOfCoordinates[VectorOfCoordinates.size()-1]][1];
+                if( sqrt((x1-x2)*(x1-x2)+(y1-y2)*(y1-y2)) < tol)
+                {
+                    cerr << "The edges have zero-length" << endl;
+                    break;
                 }
             }
         }
+        cout << "The edges of the polygons have non-zero length" << endl;
 
         // AREA TEST
+        bool zeroArea = false;
         for(unsigned int c = 0; c < mesh.NumberOfCell2Ds; c++)
         {
-            for (unsigned int e = 0; e < mesh.VerticesCell2Ds[c].size(); e++)
+            unsigned int n = mesh.VerticesCell2Ds[c].size();
+            vector<unsigned int> listOfCoordinates(mesh.VerticesCell2Ds[c].begin(),
+                                                   mesh.VerticesCell2Ds[c].end());
+
+            vector<double> area;
+            area.reserve(n-2);
+            unsigned int count = 0;
+            double totArea = 0;
+
+            while(count < n-2)
             {
-                vector<unsigned int> VectorOfCoordinates= mesh.VerticesCell2Ds[c];
-                for(unsigned int i = 2; i < VectorOfCoordinates.size(); i++)
-                {
-                    double x1 = mesh.CoordinatesCell0Ds[VectorOfCoordinates[i-2]][0];
-                    double x2 = mesh.CoordinatesCell0Ds[VectorOfCoordinates[i-1]][0];
-                    double x3 = mesh.CoordinatesCell0Ds[VectorOfCoordinates[i]][0];
+                double x1 = mesh.CoordinatesCell0Ds[listOfCoordinates[0]][0];
+                double x2 = mesh.CoordinatesCell0Ds[listOfCoordinates[count + 1]][0];
+                double x3 = mesh.CoordinatesCell0Ds[listOfCoordinates[count + 2]][0];
 
-                    double y1 = mesh.CoordinatesCell0Ds[VectorOfCoordinates[i-2]][1];
-                    double y2 = mesh.CoordinatesCell0Ds[VectorOfCoordinates[i-1]][1];
-                    double y3 = mesh.CoordinatesCell0Ds[VectorOfCoordinates[i]][1];
+                double y1 = mesh.CoordinatesCell0Ds[listOfCoordinates[0]][1];
+                double y2 = mesh.CoordinatesCell0Ds[listOfCoordinates[count + 1]][1];
+                double y3 = mesh.CoordinatesCell0Ds[listOfCoordinates[count + 2]][1];
 
-                    double area = 1.0/2.0 * fabs(x1*y2 + x3*y1 + x2*y3 - x3*y2 - x1*y3 - x2*y1);
+                area.push_back(1.0/2.0 * fabs(x1*y2 + x3*y1 + x2*y3 - x3*y2 - x1*y3 - x2*y1));
 
-                    if(area < tol*tol)
-                    {
-                        cerr << "The area is zero" << endl;
-                        return -1;
-                    }
-                }
+                listOfCoordinates.erase(listOfCoordinates.begin() + count + 1);
+                count ++;
             }
+
+            for(unsigned int i = 0; i < area.size(); i++)
+                totArea += area[i];
+
+            cout << totArea << endl;
+
+            if(totArea < tol){
+                zeroArea = true;
+                break;
+            }
+
         }
 
-
-    }
+        if(zeroArea == true)
+            cerr << "The area of the polygons is zero" << endl;
+        else
+            cout << "The area of the polygons is non-zero" << endl;
 
     return true;
 }

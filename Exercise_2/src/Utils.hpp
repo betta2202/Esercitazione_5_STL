@@ -9,7 +9,7 @@ namespace MeshLibrary{
 
 bool importMesh(const string& path,
                 PolygonalMesh& mesh,
-                unsigned int& tol);
+                double& tol);
 
 bool importCell0D(const string& fileName,
                   PolygonalMesh& mesh);
