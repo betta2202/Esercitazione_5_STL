@@ -20,5 +20,9 @@ bool importCell1D(const string& fileName,
 bool importCell2D(const string& fileName,
                   PolygonalMesh& mesh);
 
+bool EdgesTest(PolygonalMesh& mesh, double& in_tol);
+
+bool AreaTest(PolygonalMesh& mesh, double& in_tol);
+
 }
 

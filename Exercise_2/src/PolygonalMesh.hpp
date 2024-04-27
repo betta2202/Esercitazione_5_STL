@@ -29,8 +29,6 @@ struct PolygonalMesh
     vector<vector<unsigned int>> VerticesCell2Ds = {};
     vector<vector<unsigned int>> EdgesCell2Ds = {};
 
-    double tolDefault = 10 * numeric_limits<double>::epsilon();
-
 };
 
 }

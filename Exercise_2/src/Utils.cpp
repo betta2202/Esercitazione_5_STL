@@ -16,6 +16,8 @@ bool importMesh(const string& path,
         return false;
     else
     {
+        // TEST 1: checks whether the stored points are correct, printing each marker and the corresponding point
+        cout << "TEST 1:" << endl;
         cout << "Cell0D marker:" << endl;
         for(auto it = mesh.Cell0DMarker.begin(); it != mesh.Cell0DMarker.end(); it++)
         {
@@ -26,11 +28,14 @@ bool importMesh(const string& path,
             cout << endl;
         }
     }
+    cout << endl;
 
     if(!importCell1D(path + "/Cell1Ds.csv", mesh))
         return false;
     else
     {
+        // TEST 2: checks whether the stored points are correct, printing each marker and the corresponding point
+        cout << "TEST 2:" << endl;
         cout << "Cell1D marker:" << endl;
         for(auto it = mesh.Cell1DMarker.begin(); it != mesh.Cell1DMarker.end(); it++)
         {
@@ -41,88 +46,33 @@ bool importMesh(const string& path,
             cout << endl;
         }
     }
+    cout << endl;
+
+    // TEST 3: checks whether the edges of the polygons have non-zero length
+    cout << "TEST 3:" << endl;
+    cout.flush();
+    if(!EdgesTest(mesh, tol)){
+        cerr << "The edges of the polygons have zero length"<< endl;
+        return false;
+    }
+    else
+        cout << "The edges of the polygons have non-zero length" << endl;
+    cout << endl;
 
     if(!importCell2D(path + "/Cell2Ds.csv", mesh))
         return false;
 
-    // EDGES TEST
-        for(unsigned int c = 0; c < mesh.NumberOfCell2Ds; c++)
-        {
-            for (unsigned int e = 0; e < mesh.VerticesCell2Ds[c].size(); e++)
-            {
-                vector<unsigned int> VectorOfCoordinates= mesh.VerticesCell2Ds[c];
-                for(unsigned int i = 1; i < VectorOfCoordinates.size(); i++)
-                {
-                    double x1 = mesh.CoordinatesCell0Ds[VectorOfCoordinates[i-1]][0];
-                    double x2 = mesh.CoordinatesCell0Ds[VectorOfCoordinates[i]][0];
-                    double y1 = mesh.CoordinatesCell0Ds[VectorOfCoordinates[i-1]][1];
-                    double y2 = mesh.CoordinatesCell0Ds[VectorOfCoordinates[i]][1];
+    // TEST 4: checks whether the area of the polygons is non-zero
+    cout << "TEST 4:" << endl;
+    cout.flush();
+    if(!AreaTest(mesh, tol)){
+        cerr << "The area of the polygons is zero" << endl;
+        return false;
+    }
+    else
+        cout << "The area of the polygons is non-zero" << endl;
+    cout << endl;
 
-                    if( sqrt((x1-x2)*(x1-x2)+(y1-y2)*(y1-y2)) < tol)
-                    {
-                        cerr << "The edges have zero-length" << endl;
-                        break;
-                    }
-                }
-                // check on the first and last edge
-                double x1 = mesh.CoordinatesCell0Ds[VectorOfCoordinates[0]][0];
-                double x2 = mesh.CoordinatesCell0Ds[VectorOfCoordinates[VectorOfCoordinates.size()-1]][0];
-                double y1 = mesh.CoordinatesCell0Ds[VectorOfCoordinates[0]][1];
-                double y2 = mesh.CoordinatesCell0Ds[VectorOfCoordinates[VectorOfCoordinates.size()-1]][1];
-                if( sqrt((x1-x2)*(x1-x2)+(y1-y2)*(y1-y2)) < tol)
-                {
-                    cerr << "The edges have zero-length" << endl;
-                    break;
-                }
-            }
-        }
-        cout << "The edges of the polygons have non-zero length" << endl;
-
-        // AREA TEST
-        bool zeroArea = false;
-        for(unsigned int c = 0; c < mesh.NumberOfCell2Ds; c++)
-        {
-            unsigned int n = mesh.VerticesCell2Ds[c].size();
-            vector<unsigned int> listOfCoordinates(mesh.VerticesCell2Ds[c].begin(),
-                                                   mesh.VerticesCell2Ds[c].end());
-
-            vector<double> area;
-            area.reserve(n-2);
-            unsigned int count = 0;
-            double totArea = 0;
-
-            while(count < n-2)
-            {
-                double x1 = mesh.CoordinatesCell0Ds[listOfCoordinates[0]][0];
-                double x2 = mesh.CoordinatesCell0Ds[listOfCoordinates[count + 1]][0];
-                double x3 = mesh.CoordinatesCell0Ds[listOfCoordinates[count + 2]][0];
-
-                double y1 = mesh.CoordinatesCell0Ds[listOfCoordinates[0]][1];
-                double y2 = mesh.CoordinatesCell0Ds[listOfCoordinates[count + 1]][1];
-                double y3 = mesh.CoordinatesCell0Ds[listOfCoordinates[count + 2]][1];
-
-                area.push_back(1.0/2.0 * fabs(x1*y2 + x3*y1 + x2*y3 - x3*y2 - x1*y3 - x2*y1));
-
-                listOfCoordinates.erase(listOfCoordinates.begin() + count + 1);
-                count ++;
-            }
-
-            for(unsigned int i = 0; i < area.size(); i++)
-                totArea += area[i];
-
-            cout << totArea << endl;
-
-            if(totArea < tol){
-                zeroArea = true;
-                break;
-            }
-
-        }
-
-        if(zeroArea == true)
-            cerr << "The area of the polygons is zero" << endl;
-        else
-            cout << "The area of the polygons is non-zero" << endl;
 
     return true;
 }
@@ -157,10 +107,8 @@ bool importCell0D(const string& fileName,
         return false;
     }
 
-    mesh.CoordinatesCell0Ds.reserve(mesh.NumberOfCell0Ds); // gli riservo la quantità di memoria che serve
+    mesh.CoordinatesCell0Ds.reserve(mesh.NumberOfCell0Ds);
     mesh.IdCell0Ds.reserve(mesh.NumberOfCell0Ds);
-
-    //mesh.MarkerCell0Ds.reserve(mesh.NumberOfCell0Ds);
 
     for(const string & line : lines)
     {
@@ -171,17 +119,18 @@ bool importCell0D(const string& fileName,
         unsigned int marker;
         Vector2d coordinates;
 
-        convert >> id >> delimiter >> marker >> delimiter >> coordinates(0) >> delimiter >> coordinates(1); // 0 -> coordinata x, 1 -> coordinata y
+        convert >> id >> delimiter >> marker >> delimiter >> coordinates(0) >> delimiter >> coordinates(1); // 0 -> coordinate x, 1 -> coordinate y
 
         mesh.IdCell0Ds.push_back((id));
-        //mesh.MarkerCell0Ds.push_back(marker);
         mesh.CoordinatesCell0Ds.push_back(coordinates);
 
         if(marker != 0)
         {
             auto ret = mesh.Cell0DMarker.insert({marker, {id}});
-            if(!ret.second) // se la chiave marker era già presente nella mappa allora non si è effettuato l'inserimento, quindi lo metto manualmente
+            if(!ret.second){
+                // if the marker key was already present in the map then the insertion was not carried out, so I insert it manually
                 mesh.Cell0DMarker[marker].push_back(id);
+            }
         }
 
     }
@@ -222,7 +171,7 @@ bool importCell1D(const string& fileName,
         return false;
     }
 
-    mesh.VerticesCell1Ds.reserve(mesh.NumberOfCell1Ds); // gli riservo la quantità di memoria che serve
+    mesh.VerticesCell1Ds.reserve(mesh.NumberOfCell1Ds);
     mesh.IdCell1Ds.reserve(mesh.NumberOfCell1Ds);
 
     for(const string & line : lines)
@@ -234,7 +183,7 @@ bool importCell1D(const string& fileName,
         unsigned int marker;
         Vector2i vertices;
 
-        convert >> id >> delimiter >> marker >> delimiter >> vertices(0) >> delimiter >> vertices(1); // 0 -> coordinata x, 1 -> coordinata y
+        convert >> id >> delimiter >> marker >> delimiter >> vertices(0) >> delimiter >> vertices(1); // 0 -> coordinate x, 1 -> coordinate y
 
         mesh.IdCell1Ds.push_back(id);
         mesh.VerticesCell1Ds.push_back(vertices);
@@ -270,7 +219,7 @@ bool importCell2D(const string& fileName,
     while (getline(file, line))
         lines.push_back(line);
 
-    lines.pop_front(); // ignoro l'header, questo è un modo più compatto di scriverlo
+    lines.pop_front(); // the header is ignored
 
     mesh.NumberOfCell2Ds = lines.size();
 
@@ -324,5 +273,64 @@ bool importCell2D(const string& fileName,
     return true;
 }
 
+// EDGES TEST
+bool EdgesTest(PolygonalMesh& mesh, double& in_tol)
+{
+    double tol = max(in_tol, numeric_limits<double>::epsilon());
+    for(const auto& points : mesh.VerticesCell1Ds)
+    {
+        Vector2d coord1 = mesh.CoordinatesCell0Ds[points(0)];
+        Vector2d coord2 = mesh.CoordinatesCell0Ds[points(1)];
+        if (abs(coord1(0) - coord2(0)) < tol && abs(coord1(1) - coord2(1)) < tol)
+        {
+            return false;
+            break;
+        }
+    }
+    return true;
+}
+
+
+// AREA TEST
+bool AreaTest(PolygonalMesh& mesh, double& in_tol)
+{
+    double tol = max((sqrt(3)/8)*in_tol*in_tol, numeric_limits<double>::epsilon());
+    for(unsigned int c = 0; c < mesh.NumberOfCell2Ds; c++)
+    {
+        unsigned int n = mesh.VerticesCell2Ds[c].size(); // number of vertices of the polygon
+        vector<double> area;
+        area.reserve(n-2);
+        unsigned int count = 0;
+        double totArea = 0;
+
+        while(count < n-2)
+        {
+            double x1 = mesh.CoordinatesCell0Ds[mesh.VerticesCell2Ds[c][0]](0);
+            double y1 = mesh.CoordinatesCell0Ds[mesh.VerticesCell2Ds[c][0]](1);
+
+            double x2 = mesh.CoordinatesCell0Ds[mesh.VerticesCell2Ds[c][count + 1]](0);
+            double y2 = mesh.CoordinatesCell0Ds[mesh.VerticesCell2Ds[c][count + 1]](1);
+
+            double x3 = mesh.CoordinatesCell0Ds[mesh.VerticesCell2Ds[c][count + 2]](0);
+            double y3 = mesh.CoordinatesCell0Ds[mesh.VerticesCell2Ds[c][count + 2]](1);
+
+            // the next line calculate the area of the triangle using the vector product
+            area.push_back(1.0/2.0 * abs(x1*y2 + x3*y1 + x2*y3 - x3*y2 - x1*y3 - x2*y1));
+
+            count ++;
+        }
+
+        for(unsigned int i = 0; i < area.size(); i++)
+            totArea += area[i];
+
+        if(totArea < tol)
+        {
+            return false;
+            break;
+        }
+
+    }
+    return true;
+}
 
 }

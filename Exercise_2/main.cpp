@@ -11,9 +11,7 @@ int main()
 {
     PolygonalMesh mesh;
     string path = "PolygonalMesh";
-    double epsilon_double = numeric_limits<double>::epsilon();
-    //double tol = 1e-8;
-    double tol = epsilon_double;
+    double tol = 1e-6;
 
     if(!importMesh(path, mesh, tol))
         return 1;
